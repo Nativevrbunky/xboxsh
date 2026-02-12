@@ -59,7 +59,7 @@ cap = {
 
 ui = UInput(cap, name="Xbox Mouse")
 
-SENSITIVITY = 0.0006
+SENSITIVITY = 0.0003
 DEADZONE = 4000
 
 for event in controller.read_loop():
