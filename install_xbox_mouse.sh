@@ -11,6 +11,24 @@ apt update
 echo "Installing dependencies..."
 apt install -y python3-evdev
 
+echo "Enabling uinput kernel module..."
+
+# Load uinput now
+modprobe uinput
+
+# Make it load on boot (if not already added)
+if ! grep -q "^uinput" /etc/modules; then
+    echo "uinput" >> /etc/modules
+fi
+
+# Verify it exists
+if [ ! -e /dev/uinput ]; then
+    echo "ERROR: /dev/uinput not found. Reboot may be required."
+    exit 1
+fi
+
+echo "uinput ready."
+
 echo "Creating Xbox mouse script..."
 
 cat << 'EOF' > /usr/local/bin/xbox_mouse.py
