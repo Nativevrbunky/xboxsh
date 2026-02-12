@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Must run as root
 if [ "$EUID" -ne 0 ]; then 
   echo "Please run with: sudo bash install_xbox_mouse.sh"
   exit 1
@@ -25,18 +24,15 @@ devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
 controller = None
 
 for dev in devices:
-    print(f"Found device: {dev.name}")
     caps = dev.capabilities()
-    # Look for device with analog stick + buttons
     if evdev.ecodes.EV_ABS in caps and evdev.ecodes.EV_KEY in caps:
+        print("Using device:", dev.name)
         controller = dev
         break
 
 if not controller:
     print("No compatible controller found.")
     exit(1)
-
-print(f"Using controller: {controller.name}")
 
 mouse = uinput.Device([
     uinput.REL_X,
@@ -45,30 +41,34 @@ mouse = uinput.Device([
     uinput.BTN_RIGHT,
 ])
 
-SENSITIVITY = 8
-DEADZONE = 3000
+SENSITIVITY = 0.0005
+DEADZONE = 4000
 
 for event in controller.read_loop():
     if event.type == evdev.ecodes.EV_ABS:
+        # LEFT STICK X
         if event.code == evdev.ecodes.ABS_X:
-            if abs(event.value - 32768) > DEADZONE:
-                dx = int((event.value - 32768) / 32768 * SENSITIVITY)
+            if abs(event.value) > DEADZONE:
+                dx = int(event.value * SENSITIVITY)
                 mouse.emit(uinput.REL_X, dx)
+
+        # LEFT STICK Y
         elif event.code == evdev.ecodes.ABS_Y:
-            if abs(event.value - 32768) > DEADZONE:
-                dy = int((event.value - 32768) / 32768 * SENSITIVITY)
+            if abs(event.value) > DEADZONE:
+                dy = int(event.value * SENSITIVITY)
                 mouse.emit(uinput.REL_Y, dy)
 
     elif event.type == evdev.ecodes.EV_KEY:
-        if event.code == evdev.ecodes.BTN_SOUTH:  # A button
+        # A button = left click
+        if event.code == evdev.ecodes.BTN_SOUTH:
             mouse.emit(uinput.BTN_LEFT, event.value)
-        elif event.code == evdev.ecodes.BTN_EAST:  # B button
+
+        # B button = right click
+        elif event.code == evdev.ecodes.BTN_EAST:
             mouse.emit(uinput.BTN_RIGHT, event.value)
 EOF
 
 chmod +x /usr/local/bin/xbox_mouse.py
 
-echo "Done!"
-echo "Starting Xbox controller as mouse..."
-
+echo "Starting controller as mouse..."
 python3 /usr/local/bin/xbox_mouse.py
